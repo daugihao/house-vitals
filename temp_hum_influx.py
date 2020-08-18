@@ -1,9 +1,14 @@
 import adafruit_dht
 import board
+from math import log
 from time import sleep
 from influxdb import InfluxDBClient
 
 attempts = 0
+dew_point = {
+        "b":18.678,
+        "c":257.14
+        }
 
 while attempts < 3:
     try:
@@ -19,6 +24,11 @@ while attempts < 3:
             raise ValueError
         
         
+        y = log(humidity/100) + (dew_point['b']*temperature)/(dew_point['c'] + temperature)
+        temperature_dewpoint = (dew_point['c']*y) / (dew_point['b'] - y)
+        
+        print(f"Dew Point Temperature: {temperature_dewpoint:.1f}C")
+
         speed_data = [
                 {
                     "measurement": "internet_speed",
@@ -27,7 +37,8 @@ while attempts < 3:
                         },
                     "fields": {
                         "temperature": float(temperature),
-                        "humidity": float(humidity)
+                        "humidity": float(humidity),
+                        "temperature_dewpoint": float(temperature_dewpoint)
                         }
                 }
                 ]
@@ -37,7 +48,8 @@ while attempts < 3:
         
         break
     
-    except:
+    except Exception as e:
+        print(e)
         attempts += 1
         sleep(1)
 
